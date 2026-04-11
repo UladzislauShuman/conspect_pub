@@ -8,10 +8,41 @@
 - [список вопросов 1](https://gist.github.com/paulfranco/4453383cc6df064d03087ce7aa5a0c8c)
 
 ## Содержание
-- [Отличие Kotlin и Java. Что понравилось. Преимущества и недостатки](#отличие-kotlin-и-java-что-понравилось-преимущества-и-недостатки)
-- [Null-safty](#null-safty)
-- [data класс](#data-класс)
-- [sealed класс](#sealed-класс)
+- Пока не придумал категорию
+    - [Отличие Kotlin и Java. Что понравилось. Преимущества и недостатки](#отличие-kotlin-и-java-что-понравилось-преимущества-и-недостатки)
+    - [Null-safty](#null-safty)
+    - [data класс](#data-класс)
+    - [sealed класс](#sealed-класс)
+- [Категория 2: ООП в Kotlin (Классы, Наследование, Объекты)](#категория-2-ооп-в-kotlin-классы-наследование-объекты)
+    - [Чем пустой класс в Kotlin отличается от пустого класса на Java?](#чем-пустой-класс-в-kotlin-отличается-от-пустого-класса-на-java)
+    - [Что является super-классом в Kotlin? Какие у него есть методы?](#что-является-super-классом-в-kotlin-какие-у-него-есть-методы)
+    - [Модификатор open (и почему всё final по умолчанию)](#модификатор-open-и-почему-всё-final-по-умолчанию)
+    - [Модификаторы доступа (отличия от Java и internal)](#модификаторы-доступа-отличия-от-java-и-internal)
+    - [От чего может наследоваться enum class?](#от-чего-может-наследоваться-enum-class)
+    - [object, companion object и Singleton в Kotlin](#object-companion-object-и-singleton-в-kotlin)
+    - [Destruction (деструктуризация)](#destruction-деструктуризация)
+    - [Порядок инициализации](#порядок-инициализации)
+- [Категория 3: Функции и Магия Kotlin (Scope functions, Extensions, DSL)](#категория-3-функции-и-магия-kotlin-scope-functions-extensions-dsl)
+    - [Extension-функции](#extension-функции)
+    - [Scope functions (let, run, with, apply, also)](#scope-functions-let-run-with-apply-also)
+    - [Функции высшего порядка и Top-level функции.](#функции-высшего-порядка-и-top-level-функции)
+    - [Магия `inline`](#магия-inline)
+    - [Kotlin DSL (Domain Specific Language) (предметно ориентированный язык)](#kotlin-dsl-domain-specific-language-предметно-ориентированный-язык)
+    - [Ключевое слово tailrec](#ключевое-слово-tailrec)
+- [Категория 4: Коллекции и обработка данных](#категория-4-коллекции-и-обработка-данных)
+    - [Иерархия и Мутабельность (Read-only vs Mutable)](#иерархия-и-мутабельность-read-only-vs-mutable)
+    - [Стандартные операции и производительность (map, filter, etc.)](#стандартные-операции-и-производительность-map-filter-etc)
+    - [Iterable vs Sequence (Ленивые вычисления)](#iterable-vs-sequence-ленивые-вычисления)
+    - [Kotlin Collections vs Java Stream API](#kotlin-collections-vs-java-stream-api)
+    - [Ассоциация и Группировка (associateBy, groupBy, и др.)](#ассоциация-и-группировка-associateby-groupby-и-др)
+- [Категория 5: Продвинутые фичи и Архитектура](#категория-5-продвинутые-фичи-и-архитектура)
+    - [Exceptions в Kotlin и тип Nothing](#exceptions-в-kotlin-и-тип-nothing)
+    - [Делегирование свойств (Property Delegation)](#делегирование-свойств-property-delegation)
+    - не сделал
+        - [Делегирование интерфейсов (Interface Delegation)](#делегирование-интерфейсов-interface-delegation)
+        - [Lateinit vs Lazy](#lateinit-vs-lazy)
+        - [Generics (Variance: in, out, reified)](#generics-variance-in-out-reified)
+
 
 ## Ответы
 
@@ -449,7 +480,7 @@ fun main() {
 
 ## Категория 3: Функции и Магия Kotlin (Scope functions, Extensions, DSL)
 
-### Extension-функции
+### Extension-функции
 
 - что это
     - механизм, который позволяет "добавлять" новый метод или свойство к уже имеющемуся классу, не наследуясь от него и не меняя его исходный код
@@ -1118,8 +1149,3 @@ todo
 ### Lateinit vs Lazy
 
 ### Generics (Variance: in, out, reified)
-
-## Осталось
-
-что такое делегаты?
-suspend functions (state machine под капотом)
