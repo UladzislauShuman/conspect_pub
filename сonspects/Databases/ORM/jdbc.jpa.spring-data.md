@@ -1043,5 +1043,253 @@ public void linkOrder(Long orderId, Long userId) {
 
 ## как ResultSet в объекты превращаем
 
+---
+
+# немного перепрыгнул
+
+---
+
+## em.refresh()
+что делает 
+- делает SELECT для текущей сущности
+- и перетерает все поля объекта на те что из БД
+- то есть -- локально все изменения теряем
+- Lazy сущности -- остаются Lazy
+- бросит исключение, если нет в БД сущности
+
+## Транзакции в Hibernate
+
+когда пишу @Transactional, то
+- Spring TransactionManager
+    - получает EM
+    - берет Hibernate Session
+    - Session берет Connection из пула
+    - запоминает Connection и привязвыает к транзакции
+- мой код
+    - em.find
+    - em.persist
+    - em.flush
+- метод вернулся / искл
+    - commit
+    - rollback
+- connection идет обратно в pool
+- em закрывается
+- persistence context уничтожается
+
+Connection из пула берется лениво, может отдаться уже готовое соединение
+
+уровни изоляции
+- как обычно 
+
+## Оптимистическая блокировка
+
+проблема lost update
+- оба меняли одно и тоже
+- и чье-то обновление потерялось
+
+оптимистичная блокировка
+- данные не блокирую, просто проверяю что они не изменились
+- например -- версией 
+```java
+@Version
+private int version;
+```
+- в случае если кинет OptimisticLockException
+- обрабатывается -- через try-catch
+- @Lock(LockModeType.OPTIMISTIC)
+    - отличается от @Version тем, что Version проверяет версию только при update
+    - он там на коммите сделает еще запрос И проверит -- не изменилась ли версия
+- OPTIMISTIC_FORCE_INCREMENT
+    - даже если я не меняю версию, инкрементируй его версию
+- когда хороша
+    - конфликты редкие
+    - веб приложение с формами
+    - не нужно блочить БД
+
+## Пессимистичная 
+
+идея: при чтении я сразу блокирую строку в БД. 
+
+LockModeType.PESSIMISTIC_* (READ, WRITE, FORCE_INCREMENT(WRITE + version))
+
+в случае дедлока -- просто убивает одну из транзакций
+
+чтобы задать в Spring Data -- используй @Lock
+
+## Кэши первого и второго уровня
+
+- L1
+    - Persistent Context
+    - всегда есть
+    - один на EM
+    - сущности хранит по (класс, id) в карте
+    - при повторонном вызове find -- возвращает из карты, не SQL
+    - что
+        - дает 
+            - гарантию идентичности в транзакции
+            - меньше лишних запросов
+            - основа для dirty checking
+        - не дает
+            - переиспользовать
+            - если 1000 запросов параллельных к одному товару -- это 1000 запросов в БД
+- L2
+    - SessionFactory
+    - между транзакциями живет
+    - если сущность загружалась в БД и кэшировалась, то из этого L2 другая транзакция взять и может
+    - структура 
+    ```
+    SessionFactory
+    ├─ EntityRegion (кэш сущностей по ID)
+    │   ├─ Product:1 → {id:1, name:"X", price:100, version:3}
+    │   ├─ Product:2 → {...}
+    │   └─ User:5 → {...}
+    ├─ CollectionRegion  (тут только ID)
+    │   └─ User:5.orders → [10, 11, 12]
+    ├─ QueryResultsRegion
+    └─ UpdateTimestampsRegion (для инвалидации)
+    ```
+    - это просто интерфейс, а вот реализации -- разные. при чем -- выбор конкретной будет определять Где будет лежать Кэш. тем самым -- щависит от масштаба вашего приложения
+        - Ehcache
+        - Caffeine
+        - Hazelcast
+        - Infinispan 
+        - Redis
+    - @Cache(usage = CacheConcurrencyStrategy.*)
+        - READ_ONLY
+            - для тех, что никогда не меняются
+            - если обновить -- UnsupportedOperationException
+        - NONSTRICT_READ_WRITE
+            - которые редко меняются
+            - кэш инвалидицируется -> потом БД
+            - нет гарантии констистентности между транзакциями
+        - READ_WRITE
+            - мягкие локи в кэше
+            - ставит lock на кэш -> обновляет БД -> убирает lock и инвалидирует
+        - TRANSACTIONAL
+            - требуется какой-то JTA
+    - когда 
+        - полезен
+            - в основном сущности читаются
+            - дорогие в построении графы объектов
+            - однонодное приложение
+        - вреден
+            - данные часто меняются
+            - несколько инстансов приложения и без распределенного кэша
+            - несколько приложений пишет в одну бд. из-за этого мой кэш не узнает о чужих изменениях
+
+то есть, как работает 
+- смотрим Л1
+- если нет, то Л2
+- если нет, то делаем селект
+- и записываем в Л1 и Л2
+
+когда Не инвалидирует EM наш кэш
+- Native запросы
+- изменение другим приложением напрямую в БД
+- изменения через тригеры
+
+Query Cache -- как некоторое такое решение
+- Ключ -- JPQL + параметры
+- значение -- список ID найденных
+- его проблема
+    - инвалидируется при любом изменении затронутых таблиц
+- лучше кэшировать на уровне сервиса с @Chacheable
+
+## немного о генерации
+
+`em.createQuery("SELECT u FROM User u WHERE u.email = :email", User.class);`
+- Hibernate своим парсером строит Abstract Syntax Tree
+- связывает User с таблицей, а поля с колонками
+- переводит SQL для конкретной БД
+- закэширует, чтобы по второму кругу не пересчитывать
+- при выполнении -- PrepatedStatement создает
+
+есть особенность в диалектах. вроде как автоматически определяется
+
+Батчинг
+```yaml
+spring.jpa.properties.hibernate:
+  jdbc:
+    batch_size: 50
+    fetch_size: 100
+  order_inserts: true # группирует одинаковые INSERT-ы
+  order_updates: true # группирует одинаковые UPDATE-ы
+  jdbc.batch_versioned_data: true 
+```
+
+## немного об N+1
+
+```
+SELECT * FROM users;                        -- 1 запрос
+SELECT * FROM orders WHERE user_id = 1;     -- запрос 1
+SELECT * FROM orders WHERE user_id = 2;     -- запрос 2
+SELECT * FROM orders WHERE user_id = 3;     -- запрос 3
+...
+SELECT * FROM orders WHERE user_id = 100;   -- запрос 100
+```
+
+решения
+- JOIN FETCH
+    - но -- не работает пагинация (если 1 юзер - 3 заказа, то если 10 юзеров, то 30 заказов. итого в результате нашего запроса получаем 30 строк. и вот по ним нам дали возможность пагинировать. то есть -- мы можем случайно и обрезать)
+    - тогда нужно делать на два запроса
+        - один на юзеров
+        - потом по ним пагинировать, а потом уже дозагружать заказы
+- @EntityGraph
+    - Hibernate сам построит там JOIN FETCH
+- @BatchSize
+    - чтобы грузить коллекции пачками
+    ```
+    SELECT * FROM users;
+    -- цикл по юзерам, доступ к orders
+    SELECT * FROM orders WHERE user_id IN (1,2,3,...,20);   -- одна пачка из 20
+    SELECT * FROM orders WHERE user_id IN (21,22,...,40);   -- следующая
+    ```
+    - запросов при это N/batchSize
+- @Fetch(FetchMode.SUBSELECT)
+```
+@OneToMany(mappedBy = "user")
+@Fetch(FetchMode.SUBSELECT)
+private List<Order> orders;
+
+SELECT * FROM orders WHERE user_id IN (
+    SELECT id FROM users WHERE ...  -- тот же запрос, что был для юзеров
+);
+```
+- DTO-проекция
+
+## Бесконечная рекурсяи при сериализации
+```java
+@Entity
+// вариант 3: @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+// при повтроной встрече -- просто id вставит
+public class User {
+    @OneToMany(mappedBy = "user")
+    // вариант 2: @JsonManagedReference
+    private List<Order> orders;
+}
+
+@Entity
+public class Order {
+    @ManyToOne
+    //вариант 1: @JsonIgnore -- решение
+    //вариант 2: @JsonBackReference
+    private User user;
+}
+// вариант 4: DTO
+// public record UserDto(Long id, String name, List<OrderDto> orders) {}
+// public record OrderDto(Long id, BigDecimal total) {}  // без user
+
+```
+
+## о equals и hashCode
+- при изменении объекта меняется и hashCode
+- это ломает hashMap
+- правила
+    - не использовать сгенерированные id в hashCode
+    - далее
+        - либо hashCode -- константа. но тогда превратится в список или в дерево
+        - либо UUID генерировать в конструкторе
+        - либо использоваьт бизнес ключ
+    - не испльзовать @Data / EqualsAndHashCode без полей в Lombok
 
 # Spring Data
