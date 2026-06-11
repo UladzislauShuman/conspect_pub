@@ -58,7 +58,7 @@
     - [Reference counting vs tracing GC](#reference-counting-vs-tracing-gc)
     - [How GC detects garbage](#how-gc-detects-garbage)
 
-- [вопросы с этого источника(java middle)](../../sources/files/middle_java_что-то-с-тг.pdf)(на них мне помогал отвечать Gemini)
+- [вопросы с этого источника](../source/files/middle_java_что-то-с-тг.pdf)(на них мне помогал отвечать Gemini)
     - из общего понятия многопоточности
         - Что такое structured concurrency?
     - больше о CompletableFuture
@@ -72,7 +72,7 @@
         - Что делает метод orTimeout() в Java 9+? 
         - Как тестировать код с CompletableFuture?
         - Как реализовать retry логику с помощью CompletableFuture?
-
+- [еще какой-то левый источник]()
 ## Вопросы
 
 ### Чем процесс отличается от потока?
