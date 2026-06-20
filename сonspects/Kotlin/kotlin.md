@@ -38,10 +38,7 @@
 - [Категория 5: Продвинутые фичи и Архитектура](#категория-5-продвинутые-фичи-и-архитектура)
     - [Exceptions в Kotlin и тип Nothing](#exceptions-в-kotlin-и-тип-nothing)
     - [Делегирование свойств (Property Delegation)](#делегирование-свойств-property-delegation)
-    - не сделал
-        - [Делегирование интерфейсов (Interface Delegation)](#делегирование-интерфейсов-interface-delegation)
-        - [Lateinit vs Lazy](#lateinit-vs-lazy)
-        - [Generics (Variance: in, out, reified)](#generics-variance-in-out-reified)
+    - и так далее
 
 
 ## Ответы
@@ -151,7 +148,7 @@
     - с появлением record в java можно использовать аннотацию @JvmRecord
 
 - Trap
-    ```
+    ```kotlin
     data class Person(val name: String) {
         var age: Int = 0
     }
@@ -1126,26 +1123,74 @@ TODO: как написать свой движок
         .onFailure {...}
     ```
 
-### Делегирование свойств (Property Delegation)
-todo
+### Делегаты
 
-- что это?
-    - это передача отвественности 
-    - `val/ var <name>: <Type> by <Object>`
+механизм, позволяющий передать выполнение задачи или управление свойством от одного объекта другому
 
-- зачем?
-    - чтобы не дублировать код в геттерах и сеттерах
-    - например -- 10 разных свойств, в разных классав, есть общая логика -- напиши в делегате и используй его 
+Делегирование классов
 
-- плюсы
-    - DRY
-    - композиция
-- минусы
-    - накладки: объект-делегат
-    - скрытая магия
+```kotlin 
+interface Worker {
+    fun work()
+}
 
-### Делегирование интерфейсов (Interface Delegation)
+class FastWorker : Worker {
+    override fun work() = println("Работаю быстро!")
+}
 
-### Lateinit vs Lazy
+// Класс SmartWorker реализует Worker, делегируя работу объекту worker
+class SmartWorker(worker: Worker) : Worker by worker
+
+fun main() {
+    val fast = FastWorker()
+    val smart = SmartWorker(fast)
+    smart.work() // Выведет: Работаю быстро!
+}
+```
+
+Делегирование свойств
+
+Позволяет вынести логику получения (get) и изменения (set) переменной в отдельный класс
+
+Популярные встроенные делегаты
+- lazy -- вычисляется один раз при первом обращении
+```kotlin
+val heavyData: String by lazy {
+    println("Вычисляем...") 
+    "Много данных"
+}
+```
+
+- Delegates.observable -- коллбэк-отслеживание. Срабатывает каждый раз, когда значение свойства изменяется.
+```kotlin
+var watchedProperty: Int by Delegates.observable(0) { prop, old, new ->
+    println("Значение изменилось с $old на $new")
+}
+```
+
+- для Map
+```kotlin
+class User(val map: Map<String, Any?>) {
+    val name: String by map // Ищет ключ "name" в map
+    val age: Int     by map // Ищет ключ "age" в map
+}
+```
+
+- Delegates.vetoable
+    - Перехватчик изменений. Позволяет заблокировать присвоение нового значения, если оно не удовлетворяет условию.
+
+Преимущества 
+- Переиспользование кода
+- Чистота кода
+- Экономия ресурсов
 
 ### Generics (Variance: in, out, reified)
+
+List\<Dog> и List\<Animal>
+
+in Dog -- Dog и его родители
+out Animal -- от Animal до его детей
+
+List\<out Animal> -- может только отдавать Animal. в себя не может. List\<String> в метод, принимающий List\<Any>
+
+List\<in Dog> -- может только В себя брать. Consumer\<Animal> становится подтипом Consumer\<Dog>

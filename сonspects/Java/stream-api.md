@@ -1,8 +1,12 @@
 # Stream API
 
+## Введение
+
 здесь будет все об `Stream API`
 
 начнем с разбора вопросов с [этого](https://telegra.ph/Voprosy-CORE-2-02-04) источника
+
+А вообще -- вот классный блог [человека](https://struchkov.dev/blog/ru/java-stream-api/)
 
 ## Содержание
 
